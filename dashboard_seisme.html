@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tableau de Bord — Post-Séisme Al Haouz | MEN</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --navy: #1a3a6b;
+  --navy-dark: #102548;
+  --navy-light: #2a4f8f;
+  --accent: #c8102e;
+  --accent2: #e8a820;
+  --green: #16803a;
+  --blue-mid: #3b82c4;
+  --bg: #f0f2f7;
+  --bg-card: #ffffff;
+  --text: #1e2535;
+  --text-muted: #6b7280;
+  --border: #e2e6ef;
+  --sidebar-w: 240px;
+  --header-h: 60px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; font-family: 'Cairo', 'Tajawal', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+
+/* ── Layout ── */
+.app { display: flex; height: 100vh; overflow: hidden; }
+.sidebar {
+  width: var(--sidebar-w); background: var(--navy); color: white;
+  display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto;
+  transition: width .25s;
+}
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+/* ── Sidebar ── */
+.sidebar-logo {
+  padding: 16px 16px 12px; display: flex; align-items: center; gap: 10px;
+  border-bottom: 1px solid rgba(255,255,255,.1); flex-shrink: 0;
+}
+.logo-emblem {
+  width: 42px; height: 42px; border-radius: 50%; background: white;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.logo-emblem img { width: 38px; height: 38px; object-fit: contain; border-radius: 50%; }
+.logo-star { font-size: 22px; color: var(--accent); font-weight: 900; }
+.logo-text { font-size: 10.5px; font-weight: 600; line-height: 1.35; }
+.nav-section { padding: 10px 0; flex: 1; }
+.nav-label { font-size: 9px; font-weight: 700; color: rgba(255,255,255,.4); text-transform: uppercase; letter-spacing: .08em; padding: 8px 16px 4px; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px; padding: 9px 16px;
+  cursor: pointer; border-left: 3px solid transparent;
+  color: rgba(255,255,255,.7); font-size: 13px; font-weight: 500;
+  transition: all .15s; user-select: none;
+}
+.nav-item:hover { background: rgba(255,255,255,.08); color: white; }
+.nav-item.active { background: rgba(255,255,255,.12); color: white; border-left-color: var(--accent2); }
+.nav-icon { width: 18px; height: 18px; opacity: .8; flex-shrink: 0; }
+.sidebar-footer {
+  padding: 12px 16px; border-top: 1px solid rgba(255,255,255,.1);
+  font-size: 11px; color: rgba(255,255,255,.4); line-height: 1.5;
+}
+
+/* ── Header ── */
+.topbar {
+  height: var(--header-h); background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 20px; gap: 16px; flex-shrink: 0;
+}
+.topbar-title { font-size: 18px; font-weight: 700; color: var(--navy); }
+.topbar-sep { width: 1px; height: 24px; background: var(--border); }
+.topbar-sub { font-size: 13px; color: var(--text-muted); }
+.topbar-date { font-size: 12px; color: var(--text-muted); background: #f0f2f7; padding: 4px 10px; border-radius: 20px; }
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.topbar-search {
+  display: flex; align-items: center; gap: 8px; background: var(--bg);
+  border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; width: 200px;
+}
+.topbar-search input { border: none; background: none; outline: none; font-size: 13px; color: var(--text); width: 100%; font-family: inherit; }
+.topbar-search input::placeholder { color: var(--text-muted); }
+.topbar-user { display: flex; align-items: center; gap: 8px; }
+.user-avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--navy); color: white; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+.user-name { font-size: 13px; font-weight: 600; }
+.user-role { font-size: 11px; color: var(--text-muted); }
+.notif-btn {
+  width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border);
+  background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; position: relative;
+}
+.notif-dot { position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; background: var(--accent); border-radius: 50%; }
+
+/* ── Content ── */
+.content { flex: 1; overflow-y: auto; padding: 20px; }
+
+/* ── Pages ── */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── Filter Bar ── */
+.filter-bar {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.filter-label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; display: flex; align-items: center; gap: 6px; }
+.filter-select {
+  height: 36px; border: 1px solid var(--border); border-radius: 7px; padding: 0 12px; font-size: 13px;
+  background: var(--bg); color: var(--text); outline: none; cursor: pointer; font-family: inherit;
+  min-width: 140px; transition: border-color .15s;
+}
+.filter-select:focus { border-color: var(--navy); }
+.btn-reset { font-size: 13px; color: var(--navy); background: none; border: none; cursor: pointer; font-weight: 600; padding: 4px 8px; text-decoration: underline; font-family: inherit; }
+.btn-primary {
+  height: 36px; background: var(--navy); color: white; border: none; border-radius: 7px;
+  padding: 0 16px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;
+  margin-left: auto; transition: background .15s; font-family: inherit;
+}
+.btn-primary:hover { background: var(--navy-light); }
+
+/* ── KPI Cards ── */
+.kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.kpi-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+  padding: 14px 16px; position: relative; overflow: hidden; transition: box-shadow .15s;
+}
+.kpi-card:hover { box-shadow: 0 4px 12px rgba(26,58,107,.1); }
+.kpi-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--kpi-color, var(--navy)); border-radius: 10px 0 0 10px; }
+.kpi-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
+.kpi-value { font-size: 26px; font-weight: 700; color: var(--navy); margin: 4px 0; line-height: 1; }
+.kpi-sub { font-size: 12px; color: var(--text-muted); }
+.kpi-icon { position: absolute; right: 14px; top: 14px; width: 34px; height: 34px; border-radius: 8px; background: rgba(26,58,107,.08); display: flex; align-items: center; justify-content: center; }
+
+/* ── Charts Grid ── */
+.charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+.charts-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+.chart-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 16px;
+}
+.chart-card h3 { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.chart-card .chart-sub { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
+.chart-wrap { position: relative; }
+.legend-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+.leg { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); }
+.leg-sq { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+/* ── Progress bars ── */
+.prog-list { display: flex; flex-direction: column; gap: 10px; }
+.prog-item { display: flex; align-items: center; gap: 10px; }
+.prog-name { font-size: 12px; font-weight: 500; min-width: 90px; color: var(--text); }
+.prog-bar { flex: 1; height: 10px; background: #e8ecf4; border-radius: 5px; overflow: hidden; }
+.prog-fill { height: 100%; border-radius: 5px; transition: width .8s ease; }
+.prog-val { font-size: 12px; font-weight: 600; min-width: 38px; text-align: right; color: var(--text); }
+
+/* ── Table ── */
+.table-section { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 16px; overflow: hidden; }
+.table-header { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+.table-title { font-size: 15px; font-weight: 700; color: var(--text); }
+.table-count { font-size: 12px; color: var(--text-muted); background: #f0f2f7; padding: 2px 8px; border-radius: 12px; }
+.table-actions { margin-left: auto; display: flex; gap: 8px; }
+.icon-btn { width: 30px; height: 30px; border-radius: 7px; border: 1px solid var(--border); background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-muted); transition: all .15s; }
+.icon-btn:hover { background: var(--bg); color: var(--navy); }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+thead th { background: #f7f8fc; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+tbody tr { border-bottom: 1px solid var(--border); transition: background .12s; }
+tbody tr:hover { background: #f7f8fc; }
+tbody tr:last-child { border-bottom: none; }
+tbody td { padding: 10px 14px; font-size: 13px; color: var(--text); }
+.badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.badge-green { background: #dcfce7; color: #166534; }
+.badge-blue { background: #dbeafe; color: #1d4ed8; }
+.badge-amber { background: #fef3c7; color: #92400e; }
+.badge-red { background: #fee2e2; color: #991b1b; }
+.badge-gray { background: #f3f4f6; color: #4b5563; }
+.badge-navy { background: #e0e7ff; color: #1a3a6b; }
+.prog-cell { display: flex; align-items: center; gap: 6px; }
+.prog-cell-bar { flex: 1; height: 6px; background: #e8ecf4; border-radius: 3px; min-width: 50px; overflow: hidden; }
+.prog-cell-fill { height: 100%; border-radius: 3px; }
+
+/* ── Pagination ── */
+.table-footer { padding: 10px 16px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); }
+.page-info { flex: 1; }
+.pag-btn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; transition: all .12s; }
+.pag-btn:hover:not(:disabled) { background: var(--navy); color: white; border-color: var(--navy); }
+.pag-btn:disabled { opacity: .35; cursor: not-allowed; }
+.pag-nums { display: flex; gap: 4px; }
+.pag-num { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+.pag-num.active { background: var(--navy); color: white; border-color: var(--navy); }
+.pag-num:hover:not(.active) { background: #f0f2f7; }
+
+/* ── Search in table ── */
+.table-search { padding: 10px 16px; border-bottom: 1px solid var(--border); }
+.table-search input { width: 100%; max-width: 320px; height: 34px; border: 1px solid var(--border); border-radius: 7px; padding: 0 12px; font-size: 13px; color: var(--text); background: var(--bg); outline: none; font-family: inherit; }
+.table-search input:focus { border-color: var(--navy); }
+
+/* ── Import area ── */
+.import-area { border: 2px dashed var(--border); border-radius: 10px; padding: 32px; text-align: center; cursor: pointer; transition: all .2s; background: var(--bg-card); margin-bottom: 16px; }
+.import-area:hover, .import-area.drag { border-color: var(--navy); background: rgba(26,58,107,.03); }
+.import-area h4 { font-size: 16px; color: var(--navy); margin-bottom: 6px; }
+.import-area p { font-size: 13px; color: var(--text-muted); }
+
+/* ── Stat row ── */
+.stat-row { display: flex; gap: 20px; padding: 8px 0; flex-wrap: wrap; }
+.stat-item { display: flex; flex-direction: column; gap: 2px; }
+.stat-num { font-size: 20px; font-weight: 700; color: var(--navy); }
+.stat-lbl { font-size: 11px; color: var(--text-muted); }
+
+/* ── Page header ── */
+.page-header { margin-bottom: 16px; }
+.page-header h2 { font-size: 20px; font-weight: 700; color: var(--text); }
+.page-header p { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+/* ── Status indicator ── */
+.status-bar { height: 3px; background: linear-gradient(90deg, var(--accent) 0%, var(--accent2) 50%, var(--green) 100%); }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #ccd0dc; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #b0b5c3; }
+
+/* ── Animations ── */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.page.active { animation: fadeIn .2s ease; }
+.kpi-card { animation: fadeIn .3s ease; }
+
+/* ── Responsive ── */
+@media (max-width: 1100px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 800px) { .charts-row, .charts-row-3 { grid-template-columns: 1fr; } .sidebar { width: 52px; } .logo-text, .nav-item span { display: none; } }
+</style>
+</head>
+<body>
+
+<div class="status-bar"></div>
+<div class="app">
+
+<!-- ══════════ SIDEBAR ══════════ -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-emblem">
+      <span class="logo-star">★</span>
+    </div>
+    <div class="logo-text">
+      MINISTÈRE DE<br>L'ÉDUCATION NATIONALE
+    </div>
+  </div>
+
+  <nav class="nav-section">
+    <div class="nav-label">Navigation</div>
+    <div class="nav-item active" onclick="showPage('overview')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      <span>Vue d'ensemble</span>
+    </div>
+    <div class="nav-item" onclick="showPage('technique')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+      <span>Suivi Technique</span>
+    </div>
+    <div class="nav-item" onclick="showPage('financier')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6"/></svg>
+      <span>Suivi Financier</span>
+    </div>
+    <div class="nav-item" onclick="showPage('database')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3S3 13.66 3 12"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+      <span>Base de données</span>
+    </div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div>Données au</div>
+    <div style="font-weight:600; color: rgba(255,255,255,.6);" id="sidebarDate">05/04/2026</div>
+  </div>
+</aside>
+
+<!-- ══════════ MAIN ══════════ -->
+<div class="main">
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <span class="topbar-title" id="topbarTitle">Vue d'ensemble</span>
+    <div class="topbar-sep"></div>
+    <span class="topbar-sub">Post-Séisme Al Haouz</span>
+    <span class="topbar-date" id="topbarDate">MÀJ : 05/04/2026</span>
+    <div class="topbar-right">
+      <div class="topbar-search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Rechercher un code GRESA…" id="globalSearch" oninput="handleGlobalSearch(this.value)">
+      </div>
+      <button class="notif-btn" title="Notifications">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+        <span class="notif-dot"></span>
+      </button>
+      <div class="topbar-user">
+        <div class="user-avatar">AD</div>
+        <div>
+          <div class="user-name">Admin MEN</div>
+          <div class="user-role">Direction Centrale</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- ═══ PAGE: VUE D'ENSEMBLE ═══ -->
+    <div class="page active" id="page-overview">
+      <div class="page-header">
+        <h2>Tableau de bord général</h2>
+        <p>Reconstruction et réhabilitation des établissements scolaires — Zone sismique Al Haouz</p>
+      </div>
+
+      <!-- Filters -->
+      <div class="filter-bar">
+        <span class="filter-label">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+          FILTRES
+        </span>
+        <select class="filter-select" id="f-prov" onchange="applyFilters()">
+          <option value="">Toutes les provinces</option>
+          <option>AL HAOUZ</option><option>AZILAL</option><option>CHICHAOUA</option>
+          <option>OUARZAZAT</option><option>TAROUDANT</option>
+        </select>
+        <select class="filter-select" id="f-type" onchange="applyFilters()">
+          <option value="">Tous les types</option>
+          <option>Réhabilitation</option>
+          <option>Reconstruction Partielle</option>
+          <option>Reconstruction Totale</option>
+        </select>
+        <select class="filter-select" id="f-tranche" onchange="applyFilters()">
+          <option value="">Toutes les tranches</option>
+          <option>Tr1</option><option>Tr2</option><option>Tr3</option>
+        </select>
+        <select class="filter-select" id="f-part" onchange="applyFilters()">
+          <option value="">Tous les partenaires</option>
+          <option>ADHA</option><option>CGI-M</option><option>CGIM</option><option>DP</option><option>SANAD</option>
+        </select>
+        <button class="btn-reset" onclick="resetFilters()">Réinitialiser</button>
+        <label class="btn-primary" style="cursor:pointer">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Importer Excel
+          <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importExcel(this)">
+        </label>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-grid" id="kpiGrid"></div>
+
+      <!-- Charts Row 1 -->
+      <div class="charts-row">
+        <div class="chart-card">
+          <h3>Répartition par type de travaux</h3>
+          <div class="chart-sub">Distribution des 1 724 projets</div>
+          <div class="legend-row" id="typeLegend"></div>
+          <div class="chart-wrap" style="height:200px"><canvas id="typeChart" role="img" aria-label="Type de travaux"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Projets par province</h3>
+          <div class="chart-sub">Nombre d'établissements concernés</div>
+          <div class="chart-wrap" style="height:220px"><canvas id="provChart" role="img" aria-label="Projets par province"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Charts Row 2 -->
+      <div class="charts-row">
+        <div class="chart-card">
+          <h3>Avancement des travaux par province</h3>
+          <div class="chart-sub">Taux moyen — gros et second œuvre</div>
+          <div class="prog-list" id="progList"></div>
+        </div>
+        <div class="chart-card">
+          <h3>Avancement global — étapes clés</h3>
+          <div class="chart-sub">Nombre de projets par stade d'avancement</div>
+          <div class="chart-wrap" style="height:200px"><canvas id="stagesChart" role="img" aria-label="Étapes avancement"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Charts Row 3 -->
+      <div class="charts-row-3">
+        <div class="chart-card">
+          <h3>Tranche CGIM</h3>
+          <div class="legend-row" id="trancheLegend"></div>
+          <div class="chart-wrap" style="height:160px"><canvas id="trancheChart" role="img" aria-label="Tranches CGIM"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Constructibilité</h3>
+          <div class="legend-row" id="constrLegend"></div>
+          <div class="chart-wrap" style="height:160px"><canvas id="constrChart" role="img" aria-label="Constructibilité"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Cycle scolaire</h3>
+          <div class="legend-row" id="cycleLegend"></div>
+          <div class="chart-wrap" style="height:160px"><canvas id="cycleChart" role="img" aria-label="Cycle scolaire"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Partenaires -->
+      <div class="chart-card" style="margin-bottom:16px">
+        <h3>Répartition par maître d'ouvrage délégué</h3>
+        <div class="chart-sub">Top partenaires — nombre de projets</div>
+        <div class="chart-wrap" style="height:120px"><canvas id="partChart" role="img" aria-label="Partenaires"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ═══ PAGE: SUIVI TECHNIQUE ═══ -->
+    <div class="page" id="page-technique">
+      <div class="page-header">
+        <h2>Suivi Technique</h2>
+        <p>Avancement détaillé par établissement — Reconstruction et réhabilitation</p>
+      </div>
+
+      <div class="filter-bar">
+        <span class="filter-label">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+          FILTRES
+        </span>
+        <select class="filter-select" id="tf-prov" onchange="applyTechFilters()">
+          <option value="">Toutes les provinces</option>
+          <option>AL HAOUZ</option><option>AZILAL</option><option>CHICHAOUA</option>
+          <option>OUARZAZAT</option><option>TAROUDANT</option>
+        </select>
+        <select class="filter-select" id="tf-type" onchange="applyTechFilters()">
+          <option value="">Tous les types</option>
+          <option>Réhabilitation</option>
+          <option>Reconstruction Partielle</option>
+          <option>Reconstruction Totale</option>
+        </select>
+        <select class="filter-select" id="tf-tranche" onchange="applyTechFilters()">
+          <option value="">Toutes les tranches</option>
+          <option>Tr1</option><option>Tr2</option><option>Tr3</option>
+        </select>
+        <select class="filter-select" id="tf-avancement" onchange="applyTechFilters()">
+          <option value="">Tous les avancements</option>
+          <option value="acheve">Achevés (100%)</option>
+          <option value="encours">En cours (>0%)</option>
+          <option value="nondemarre">Non démarrés (0%)</option>
+        </select>
+        <button class="btn-reset" onclick="resetTechFilters()">Réinitialiser</button>
+      </div>
+
+      <div class="table-section">
+        <div class="table-header">
+          <span class="table-title">Projets — Avancement technique</span>
+          <span class="table-count" id="techCount">1 724 entrées</span>
+          <div class="table-actions">
+            <button class="icon-btn" title="Filtrer" onclick="document.getElementById('tf-prov').focus()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            </button>
+            <button class="icon-btn" title="Exporter CSV" onclick="exportCSV('tech')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="table-search">
+          <input type="text" placeholder="Rechercher par code GRESA, commune, établissement…" id="techSearch" oninput="applyTechFilters()">
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Code GRESA</th>
+                <th>Province</th>
+                <th>Commune</th>
+                <th>Établissement</th>
+                <th>Type</th>
+                <th>Tranche</th>
+                <th>Gros œuvre</th>
+                <th>Second œuvre</th>
+                <th>Réception</th>
+                <th>Constructibilité</th>
+              </tr>
+            </thead>
+            <tbody id="techTableBody"></tbody>
+          </table>
+        </div>
+        <div class="table-footer">
+          <span class="page-info" id="techPageInfo">Affichage de 1 à 20 sur 0 entrées</span>
+          <div class="pag-nums" id="techPagNums"></div>
+          <button class="pag-btn" id="techPrev" onclick="techPage(-1)">&#8249;</button>
+          <button class="pag-btn" id="techNext" onclick="techPage(1)">&#8250;</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ PAGE: SUIVI FINANCIER ═══ -->
+    <div class="page" id="page-financier">
+      <div class="page-header">
+        <h2>Suivi Financier</h2>
+        <p>Marchés, attributaires, montants et paiements</p>
+      </div>
+
+      <div class="filter-bar">
+        <span class="filter-label">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+          FILTRES
+        </span>
+        <select class="filter-select" id="ff-prov" onchange="applyFinFilters()">
+          <option value="">Toutes les provinces</option>
+          <option>AL HAOUZ</option><option>AZILAL</option><option>CHICHAOUA</option>
+          <option>OUARZAZATE</option><option>TAROUDANT</option>
+        </select>
+        <select class="filter-select" id="ff-adj" onchange="applyFinFilters()">
+          <option value="">Tous les partenaires</option>
+          <option value="OUI">Adjugés</option>
+          <option value="NON">Non adjugés</option>
+        </select>
+        <select class="filter-select" id="ff-type" onchange="applyFinFilters()">
+          <option value="">Tous les travaux</option>
+          <option value="REHA">Réhabilitation</option>
+          <option value="RECONSTRUCTION">Reconstruction</option>
+          <option value="CONSTR">Construction</option>
+        </select>
+        <button class="btn-reset" onclick="resetFinFilters()">Réinitialiser</button>
+        <button class="btn-primary" onclick="exportCSV('fin')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Exporter
+        </button>
+      </div>
+
+      <!-- KPIs Financiers -->
+      <div class="kpi-grid" id="finKpiGrid" style="margin-bottom:16px"></div>
+
+      <!-- Marchés -->
+      <div class="table-section">
+        <div class="table-header">
+          <span class="table-title">Suivi des Marchés</span>
+          <span class="table-count" id="marcheCount">799 entrées</span>
+          <div class="table-actions">
+            <button class="icon-btn" title="Exporter" onclick="exportCSV('marche')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="table-search">
+          <input type="text" placeholder="Rechercher par N° marché, attributaire, code GRESA…" id="marcheSearch" oninput="applyFinFilters()">
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>N° Marché</th>
+                <th>Province</th>
+                <th>Code GRESA</th>
+                <th>Attributaire</th>
+                <th>Montant TTC</th>
+                <th>Date OS</th>
+                <th>Délai</th>
+                <th>Type</th>
+                <th>Statut</th>
+              </tr>
+            </thead>
+            <tbody id="marcheTableBody"></tbody>
+          </table>
+        </div>
+        <div class="table-footer">
+          <span class="page-info" id="marchePageInfo">Affichage de 1 à 20 sur 0 entrées</span>
+          <div class="pag-nums" id="marchePagNums"></div>
+          <button class="pag-btn" id="marchePrev" onclick="marchePage(-1)">&#8249;</button>
+          <button class="pag-btn" id="marcheNext" onclick="marchePage(1)">&#8250;</button>
+        </div>
+      </div>
+
+      <!-- Paiements -->
+      <div class="table-section">
+        <div class="table-header">
+          <span class="table-title">Suivi des Paiements</span>
+          <span class="table-count" id="paiCount">57 entrées</span>
+          <div class="table-actions">
+            <button class="icon-btn" onclick="exportCSV('pai')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Code GRESA</th>
+                <th>Province</th>
+                <th>N° Marché</th>
+                <th>Attributaire</th>
+                <th>Décompte</th>
+                <th>Montant (DH)</th>
+                <th>Date</th>
+                <th>État</th>
+              </tr>
+            </thead>
+            <tbody id="paiTableBody"></tbody>
+          </table>
+        </div>
+        <div class="table-footer">
+          <span class="page-info" id="paiPageInfo">Affichage de 1 à 20 sur 0 entrées</span>
+          <div class="pag-nums" id="paiPagNums"></div>
+          <button class="pag-btn" id="paiPrev" onclick="paiPage(-1)">&#8249;</button>
+          <button class="pag-btn" id="paiNext" onclick="paiPage(1)">&#8250;</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ PAGE: BASE DE DONNÉES ═══ -->
+    <div class="page" id="page-database">
+      <div class="page-header">
+        <h2>Base de données</h2>
+        <p>Accès complet à tous les établissements — 1 724 projets</p>
+      </div>
+
+      <div class="import-area" id="dropZone" onclick="document.getElementById('fileInput').click()" 
+           ondragover="event.preventDefault();this.classList.add('drag')" 
+           ondragleave="this.classList.remove('drag')"
+           ondrop="handleDrop(event)">
+        <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none" onchange="importExcel(this)">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#1a3a6b" stroke-width="1.5" style="margin-bottom:10px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <h4>Mettre à jour les données</h4>
+        <p>Glissez-déposez votre fichier Excel ici ou cliquez pour sélectionner<br><small style="color:#9ca3af">Formats acceptés : .xlsx, .xls</small></p>
+      </div>
+
+      <div class="table-section">
+        <div class="table-header">
+          <span class="table-title">Tous les établissements</span>
+          <span class="table-count" id="dbCount">1 724 entrées</span>
+          <div class="table-actions">
+            <button class="icon-btn" onclick="exportCSV('db')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="table-search">
+          <input type="text" placeholder="Rechercher…" id="dbSearch" oninput="applyDbFilters()">
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>AREF</th><th>Province</th><th>Code GRESA</th><th>Commune</th>
+                <th>Établissement</th><th>Type</th><th>Tranche</th><th>Partenaire</th>
+                <th>Cycle</th><th>Statut</th>
+              </tr>
+            </thead>
+            <tbody id="dbTableBody"></tbody>
+          </table>
+        </div>
+        <div class="table-footer">
+          <span class="page-info" id="dbPageInfo">Affichage de 1 à 20 sur 0 entrées</span>
+          <div class="pag-nums" id="dbPagNums"></div>
+          <button class="pag-btn" id="dbPrev" onclick="dbPage(-1)">&#8249;</button>
+          <button class="pag-btn" id="dbNext" onclick="dbPage(1)">&#8250;</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+// ══════════════════════════════════════
+// DATA (embedded from Excel)
+// ══════════════════════════════════════
+</script>
+<script src="data_seisme.js"></script>
+<script>
+// ══════════════════════════════════════
+// STATE
+// ══════════════════════════════════════
+let filteredProjects = [];
+let filteredMarches = [];
+let filteredPaiements = [];
+let filteredDb = [];
+
+let techCurPage = 1, marcheCurPage = 1, paiCurPage = 1, dbCurPage = 1;
+const PAGE_SIZE = 20;
+
+// Chart instances
+let charts = {};
+
+// ══════════════════════════════════════
+// PAGE NAVIGATION
+// ══════════════════════════════════════
+const pageNames = { overview: 'Vue d\'ensemble', technique: 'Suivi Technique', financier: 'Suivi Financier', database: 'Base de données' };
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.nav-item')[['overview','technique','financier','database'].indexOf(id)].classList.add('active');
+  document.getElementById('topbarTitle').textContent = pageNames[id];
+  if (id === 'technique') { applyTechFilters(); }
+  if (id === 'financier') { applyFinFilters(); renderFinKpis(); }
+  if (id === 'database') { applyDbFilters(); }
+}
+
+// ══════════════════════════════════════
+// FILTERS
+// ══════════════════════════════════════
+function getFilteredProjects() {
+  const prov = document.getElementById('f-prov').value;
+  const type = document.getElementById('f-type').value;
+  const tranche = document.getElementById('f-tranche').value;
+  const part = document.getElementById('f-part').value;
+  return DB.projects.filter(p =>
+    (!prov || p.prov === prov) &&
+    (!type || p.type === type) &&
+    (!tranche || p.tranche === tranche) &&
+    (!part || p.partenaire.toLowerCase().includes(part.toLowerCase()))
+  );
+}
+
+function applyFilters() {
+  filteredProjects = getFilteredProjects();
+  renderKpis();
+  renderCharts();
+}
+
+function resetFilters() {
+  ['f-prov','f-type','f-tranche','f-part'].forEach(id => document.getElementById(id).value = '');
+  applyFilters();
+}
+
+// Technical filters
+function applyTechFilters() {
+  const prov = document.getElementById('tf-prov').value;
+  const type = document.getElementById('tf-type').value;
+  const tranche = document.getElementById('tf-tranche').value;
+  const av = document.getElementById('tf-avancement').value;
+  const search = document.getElementById('techSearch').value.toLowerCase();
+  filteredProjects = DB.projects.filter(p => {
+    if (prov && p.prov !== prov) return false;
+    if (type && p.type !== type) return false;
+    if (tranche && p.tranche !== tranche) return false;
+    if (av === 'acheve' && p.recep !== 1) return false;
+    if (av === 'encours' && !(p.gros > 0 && p.recep !== 1)) return false;
+    if (av === 'nondemarre' && p.gros > 0) return false;
+    if (search && !(p.gresa.toLowerCase().includes(search) || p.commune.toLowerCase().includes(search) || p.etbs.toLowerCase().includes(search))) return false;
+    return true;
+  });
+  techCurPage = 1;
+  renderTechTable();
+}
+
+function resetTechFilters() {
+  ['tf-prov','tf-type','tf-tranche','tf-avancement'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('techSearch').value = '';
+  applyTechFilters();
+}
+
+// Financial filters
+function applyFinFilters() {
+  const prov = document.getElementById('ff-prov').value;
+  const adj = document.getElementById('ff-adj').value;
+  const type = document.getElementById('ff-type').value;
+  const search = document.getElementById('marcheSearch').value.toLowerCase();
+  filteredMarches = DB.marches.filter(m => {
+    if (prov && m.prov.replace('E','') !== prov.replace('E','')) return false;
+    if (adj && m.adj.toUpperCase() !== adj) return false;
+    if (type && m.type !== type) return false;
+    if (search && !(m.num_marche.toLowerCase().includes(search) || m.attributaire.toLowerCase().includes(search) || m.gresa.toLowerCase().includes(search))) return false;
+    return true;
+  });
+  // Filter paiements by province
+  filteredPaiements = DB.paiements.filter(p => !prov || p.prov.replace('E','') === prov.replace('E',''));
+  marcheCurPage = 1; paiCurPage = 1;
+  renderMarcheTable();
+  renderPaiTable();
+  document.getElementById('marcheCount').textContent = filteredMarches.length.toLocaleString('fr') + ' entrées';
+  document.getElementById('paiCount').textContent = filteredPaiements.length.toLocaleString('fr') + ' entrées';
+}
+
+function resetFinFilters() {
+  ['ff-prov','ff-adj','ff-type'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('marcheSearch').value = '';
+  applyFinFilters();
+}
+
+// DB filters
+function applyDbFilters() {
+  const search = document.getElementById('dbSearch').value.toLowerCase();
+  filteredDb = DB.projects.filter(p =>
+    !search || p.gresa.toLowerCase().includes(search) || p.commune.toLowerCase().includes(search) ||
+    p.etbs.toLowerCase().includes(search) || p.prov.toLowerCase().includes(search) || p.partenaire.toLowerCase().includes(search)
+  );
+  dbCurPage = 1;
+  renderDbTable();
+}
+
+// Global search
+function handleGlobalSearch(val) {
+  if (!val) return;
+  document.getElementById('dbSearch').value = val;
+  showPage('database');
+  applyDbFilters();
+}
+
+// ══════════════════════════════════════
+// KPI RENDERING
+// ══════════════════════════════════════
+function renderKpis() {
+  const p = filteredProjects;
+  const acheves = p.filter(x => x.recep === 1).length;
+  const enCours = p.filter(x => x.gros > 0 && x.recep !== 1).length;
+  const total = p.length;
+  const avgRec = p.filter(x => x.recep != null).reduce((a,b) => a + b.recep, 0) / (p.filter(x => x.recep != null).length || 1);
+
+  const kpis = [
+    { label: 'Total projets', value: total.toLocaleString('fr'), sub: '5 provinces — zone sismique', color: '#1a3a6b', icon: '🏫' },
+    { label: 'Projets achevés', value: acheves.toLocaleString('fr'), sub: ((acheves/total*100)||0).toFixed(1) + '% du total', color: '#16803a', icon: '✓' },
+    { label: 'En cours', value: enCours.toLocaleString('fr'), sub: ((enCours/total*100)||0).toFixed(1) + '% du total', color: '#e8a820', icon: '⚙' },
+    { label: 'Taux réception moy.', value: ((avgRec||0)*100).toFixed(1) + '%', sub: 'Réception provisoire globale', color: '#3b82c4', icon: '📊' },
+  ];
+
+  document.getElementById('kpiGrid').innerHTML = kpis.map(k => `
+    <div class="kpi-card" style="--kpi-color:${k.color}">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value">${k.value}</div>
+      <div class="kpi-sub">${k.sub}</div>
+      <div class="kpi-icon" style="background:${k.color}18">${k.icon}</div>
+    </div>`).join('');
+}
+
+function renderFinKpis() {
+  const m = DB.marches;
+  const adjuges = m.filter(x => x.adj.toUpperCase() === 'OUI').length;
+  const montantTotal = m.reduce((a,b) => a + (b.montant||0), 0);
+  const paiTotal = DB.paiements.reduce((a,b) => a + (b.montant||0), 0);
+  const payes = DB.paiements.filter(x => x.paye === 'OUI').length;
+
+  const kpis = [
+    { label: 'Marchés attribués', value: adjuges.toLocaleString('fr'), sub: 'sur ' + m.length + ' appels d\'offres', color: '#1a3a6b', icon: '📋' },
+    { label: 'Montant total TTC', value: (montantTotal/1e6).toFixed(1) + ' M DH', sub: 'Engagements contractuels', color: '#16803a', icon: '💰' },
+    { label: 'Montant paiements', value: (paiTotal/1e6).toFixed(2) + ' M DH', sub: DB.paiements.length + ' décomptes enregistrés', color: '#e8a820', icon: '💳' },
+    { label: 'Décomptes payés', value: payes.toLocaleString('fr'), sub: ((payes/DB.paiements.length*100)||0).toFixed(0) + '% des décomptes', color: '#3b82c4', icon: '✓' },
+  ];
+
+  document.getElementById('finKpiGrid').innerHTML = kpis.map(k => `
+    <div class="kpi-card" style="--kpi-color:${k.color}">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value">${k.value}</div>
+      <div class="kpi-sub">${k.sub}</div>
+      <div class="kpi-icon" style="background:${k.color}18">${k.icon}</div>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════
+// CHARTS
+// ══════════════════════════════════════
+function mkLegend(el, labels, colors, data, total) {
+  document.getElementById(el).innerHTML = labels.map((l,i) => `
+    <span class="leg"><span class="leg-sq" style="background:${colors[i]}"></span>${l} (${Math.round(data[i]/total*100)}%)</span>`).join('');
+}
+
+function renderCharts() {
+  const p = filteredProjects;
+
+  // Type chart
+  const typeMap = {};
+  p.forEach(x => { typeMap[x.type] = (typeMap[x.type]||0)+1; });
+  const typeLabels = ['Réhabilitation','Reconstruction Partielle','Reconstruction Totale','Fermé'];
+  const typeColors = ['#1a3a6b','#3b82c4','#94c4e8','#9ca3af'];
+  const typeData = typeLabels.map(l => typeMap[l]||0).filter((_,i) => typeData2[i] > 0 || true);
+  const typeData2 = typeLabels.map(l => typeMap[l]||0);
+  mkLegend('typeLegend', typeLabels.filter((_,i)=>typeData2[i]>0), typeColors.filter((_,i)=>typeData2[i]>0), typeData2.filter(x=>x>0), p.length||1);
+  if (charts.type) charts.type.destroy();
+  charts.type = new Chart(document.getElementById('typeChart'), {
+    type: 'doughnut',
+    data: { labels: typeLabels, datasets: [{ data: typeData2, backgroundColor: typeColors, borderWidth: 0, hoverOffset: 8 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { display: false } } }
+  });
+
+  // Province chart
+  const provs = ['CHICHAOUA','TAROUDANT','AL HAOUZ','OUARZAZAT','AZILAL'];
+  const provMap = {};
+  p.forEach(x => { provMap[x.prov] = (provMap[x.prov]||0)+1; });
+  if (charts.prov) charts.prov.destroy();
+  charts.prov = new Chart(document.getElementById('provChart'), {
+    type: 'bar',
+    data: { labels: provs, datasets: [{ data: provs.map(v=>provMap[v]||0), backgroundColor: '#1a3a6b', borderRadius: 5, borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+      scales: { x: { ticks: { font: { size: 11 }, autoSkip: false } }, y: { ticks: { font: { size: 11 } }, grid: { color: '#f0f2f7' } } } }
+  });
+
+  // Progress bars
+  const provAvMap = {};
+  const provAvCount = {};
+  p.forEach(x => {
+    if (!provAvMap[x.prov]) { provAvMap[x.prov]=0; provAvCount[x.prov]=0; }
+    const av = ((x.gros||0)+(x.second||0))/2;
+    provAvMap[x.prov] += av; provAvCount[x.prov]++;
+  });
+  const provColors = { 'OUARZAZAT':'#16803a','TAROUDANT':'#3b82c4','CHICHAOUA':'#1a3a6b','AL HAOUZ':'#e8a820','AZILAL':'#c8102e' };
+  document.getElementById('progList').innerHTML = provs.sort((a,b) => (provAvMap[b]||0)/(provAvCount[b]||1) - (provAvMap[a]||0)/(provAvCount[a]||1)).map(pv => {
+    const avg = provAvCount[pv] ? provAvMap[pv]/provAvCount[pv] : 0;
+    return `<div class="prog-item">
+      <span class="prog-name">${pv}</span>
+      <div class="prog-bar"><div class="prog-fill" style="width:${(avg*100).toFixed(0)}%;background:${provColors[pv]||'#1a3a6b'}"></div></div>
+      <span class="prog-val">${(avg*100).toFixed(0)}%</span>
+    </div>`;
+  }).join('');
+
+  // Stages chart
+  const acheves = p.filter(x => x.recep===1).length;
+  const enRecep = p.filter(x => x.recep>0 && x.recep<1).length;
+  const enSecond = p.filter(x => x.second>0 && (x.recep==null||x.recep===0)).length;
+  const enGros = p.filter(x => x.gros>0 && (x.second==null||x.second===0)).length;
+  const nonDem = p.filter(x => !x.gros || x.gros===0).length;
+  if (charts.stages) charts.stages.destroy();
+  charts.stages = new Chart(document.getElementById('stagesChart'), {
+    type: 'bar',
+    data: { labels: ['Achevés','En réception','Second œuvre','Gros œuvre','Non démarrés'],
+      datasets: [{ data: [acheves,enRecep,enSecond,enGros,nonDem],
+        backgroundColor: ['#16803a','#3b82c4','#1a3a6b','#e8a820','#e5e7eb'], borderRadius: 5, borderWidth: 0 }] },
+    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+      scales: { x: { ticks: { font: { size: 11 } }, grid: { color: '#f0f2f7' } }, y: { ticks: { font: { size: 11 } }, autoSkip: false } } }
+  });
+
+  // Tranche
+  const tMap = {}; p.forEach(x => { tMap[x.tranche] = (tMap[x.tranche]||0)+1; });
+  const tLabels = ['Tr1','Tr2','Tr3']; const tColors = ['#1a3a6b','#3b82c4','#94c4e8'];
+  const tData = tLabels.map(l=>tMap[l]||0);
+  mkLegend('trancheLegend', tLabels, tColors, tData, p.length||1);
+  if (charts.tranche) charts.tranche.destroy();
+  charts.tranche = new Chart(document.getElementById('trancheChart'), {
+    type: 'pie', data: { labels: tLabels, datasets: [{ data: tData, backgroundColor: tColors, borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+  });
+
+  // Constructibilité
+  const cMap = { C:0, CAC:0, NC:0, Autre:0 };
+  p.forEach(x => {
+    const c = (x.constructibilite||'').trim();
+    if (c==='C'||c.startsWith('C -')||c==='C - changement'||c.includes('C -')) cMap.C++;
+    else if (c==='CAC') cMap.CAC++;
+    else if (c==='NC') cMap.NC++;
+    else cMap.Autre++;
+  });
+  const cLabels = ['Constructible','CAC','Non constructible','Autre']; const cColors = ['#16803a','#e8a820','#c8102e','#9ca3af'];
+  const cData = [cMap.C, cMap.CAC, cMap.NC, cMap.Autre];
+  mkLegend('constrLegend', cLabels, cColors, cData, p.length||1);
+  if (charts.constr) charts.constr.destroy();
+  charts.constr = new Chart(document.getElementById('constrChart'), {
+    type: 'pie', data: { labels: cLabels, datasets: [{ data: cData, backgroundColor: cColors, borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+  });
+
+  // Cycle
+  const cyMap = {}; p.forEach(x => { const c = x.cycle.includes('Prim')||x.cycle.includes('prim')?'Primaire': x.cycle.includes('Coll')||x.cycle.includes('coll')?'Collégial': x.cycle.includes('Qual')||x.cycle.includes('qual')?'Qualifiant':'Autre'; cyMap[c]=(cyMap[c]||0)+1; });
+  const cyLabels = ['Primaire','Collégial','Qualifiant']; const cyColors = ['#1a3a6b','#3b82c4','#94c4e8'];
+  const cyData = cyLabels.map(l=>cyMap[l]||0);
+  mkLegend('cycleLegend', cyLabels, cyColors, cyData, p.length||1);
+  if (charts.cycle) charts.cycle.destroy();
+  charts.cycle = new Chart(document.getElementById('cycleChart'), {
+    type: 'pie', data: { labels: cyLabels, datasets: [{ data: cyData, backgroundColor: cyColors, borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+  });
+
+  // Partenaires
+  const partMap = {}; p.forEach(x => { const k = x.partenaire||'Autre'; partMap[k]=(partMap[k]||0)+1; });
+  const topParts = Object.entries(partMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  if (charts.part) charts.part.destroy();
+  charts.part = new Chart(document.getElementById('partChart'), {
+    type: 'bar',
+    data: { labels: topParts.map(x=>x[0]), datasets: [{ data: topParts.map(x=>x[1]), backgroundColor: ['#1a3a6b','#3b82c4','#94c4e8','#e8a820','#16803a'], borderRadius: 4, borderWidth: 0 }] },
+    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+      scales: { x: { ticks: { font: { size: 11 } }, grid: { color: '#f0f2f7' } }, y: { ticks: { font: { size: 11 } } } } }
+  });
+}
+
+// ══════════════════════════════════════
+// TABLE RENDERING
+// ══════════════════════════════════════
+function pct(v) { return v==null ? '—' : (v*100).toFixed(0)+'%'; }
+function pctBar(v, color) {
+  if (v==null) return '<span style="color:#9ca3af">—</span>';
+  const pct0 = (v*100).toFixed(0);
+  const c = v===1?'#16803a': v>0.5?'#3b82c4': v>0?'#e8a820':'#e5e7eb';
+  return `<div class="prog-cell"><div class="prog-cell-bar"><div class="prog-cell-fill" style="width:${pct0}%;background:${c}"></div></div><span style="font-size:11px;min-width:30px">${pct0}%</span></div>`;
+}
+function typeBadge(t) {
+  if (!t) return '';
+  if (t.includes('Réhab')) return `<span class="badge badge-blue">Réhab.</span>`;
+  if (t.includes('Partielle')) return `<span class="badge badge-amber">Recons. Part.</span>`;
+  if (t.includes('Totale')) return `<span class="badge badge-navy">Recons. Tot.</span>`;
+  if (t === 'Fermé') return `<span class="badge badge-gray">Fermé</span>`;
+  return `<span class="badge badge-gray">${t}</span>`;
+}
+function adjBadge(v) {
+  return v.toUpperCase()==='OUI' ? '<span class="badge badge-green">Adjugé</span>' : '<span class="badge badge-gray">Non adjugé</span>';
+}
+function payeBadge(v) {
+  return v.toUpperCase()==='OUI' ? '<span class="badge badge-green">Payé</span>' : '<span class="badge badge-amber">En attente</span>';
+}
+
+function renderTable(bodyId, data, curPage, cols) {
+  const start = (curPage-1)*PAGE_SIZE, end = Math.min(start+PAGE_SIZE, data.length);
+  const slice = data.slice(start, end);
+  document.getElementById(bodyId).innerHTML = slice.length
+    ? slice.map(cols).join('')
+    : `<tr><td colspan="20" style="text-align:center;padding:30px;color:#9ca3af">Aucune donnée correspondante</td></tr>`;
+}
+
+function renderTechTable() {
+  document.getElementById('techCount').textContent = filteredProjects.length.toLocaleString('fr') + ' entrées';
+  renderTable('techTableBody', filteredProjects, techCurPage, r => `<tr>
+    <td><code style="font-size:11px;background:#f0f2f7;padding:2px 6px;border-radius:4px">${r.gresa}</code></td>
+    <td>${r.prov}</td><td>${r.commune}</td>
+    <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.etbs}">${r.etbs}</td>
+    <td>${typeBadge(r.type)}</td>
+    <td><span class="badge badge-gray">${r.tranche}</span></td>
+    <td>${pctBar(r.gros)}</td>
+    <td>${pctBar(r.second)}</td>
+    <td>${pctBar(r.recep)}</td>
+    <td><span class="badge ${r.constructibilite==='C'||r.constructibilite.startsWith('C -')?'badge-green':r.constructibilite==='CAC'?'badge-amber':r.constructibilite==='NC'?'badge-red':'badge-gray'}" style="font-size:10px">${r.constructibilite||'—'}</span></td>
+  </tr>`);
+  renderPagination('techPageInfo','techPagNums','techPrev','techNext', filteredProjects.length, techCurPage, n => { techCurPage=n; renderTechTable(); });
+}
+
+function renderMarcheTable() {
+  renderTable('marcheTableBody', filteredMarches, marcheCurPage, r => `<tr>
+    <td style="font-weight:600;font-size:12px">${r.num_marche||'—'}</td>
+    <td>${r.prov}</td>
+    <td><code style="font-size:11px;background:#f0f2f7;padding:2px 6px;border-radius:4px">${r.gresa}</code></td>
+    <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.attributaire||'—'}</td>
+    <td style="font-weight:600;color:#1a3a6b">${r.montant?'<strong>'+r.montant.toLocaleString('fr',{minimumFractionDigits:0})+' DH</strong>':'—'}</td>
+    <td style="font-size:12px">${r.date_os||'—'}</td>
+    <td><span class="badge badge-gray">${r.delai||'—'}</span></td>
+    <td><span class="badge badge-blue" style="font-size:10px">${r.type}</span></td>
+    <td>${adjBadge(r.adj)}</td>
+  </tr>`);
+  renderPagination('marchePageInfo','marchePagNums','marchePrev','marcheNext', filteredMarches.length, marcheCurPage, n => { marcheCurPage=n; renderMarcheTable(); });
+}
+
+function renderPaiTable() {
+  renderTable('paiTableBody', filteredPaiements, paiCurPage, r => `<tr>
+    <td><code style="font-size:11px;background:#f0f2f7;padding:2px 6px;border-radius:4px">${r.gresa}</code></td>
+    <td>${r.prov}</td>
+    <td style="font-size:12px">${r.num_marche||'—'}</td>
+    <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.attributaire||'—'}</td>
+    <td><span class="badge badge-navy">Décompte ${r.decompte}</span></td>
+    <td style="font-weight:600;color:#16803a">${r.montant.toLocaleString('fr',{minimumFractionDigits:2})} DH</td>
+    <td style="font-size:12px">${r.date||'—'}</td>
+    <td>${payeBadge(r.paye)}</td>
+  </tr>`);
+  renderPagination('paiPageInfo','paiPagNums','paiPrev','paiNext', filteredPaiements.length, paiCurPage, n => { paiCurPage=n; renderPaiTable(); });
+}
+
+function renderDbTable() {
+  document.getElementById('dbCount').textContent = filteredDb.length.toLocaleString('fr') + ' entrées';
+  renderTable('dbTableBody', filteredDb, dbCurPage, r => `<tr>
+    <td><span class="badge badge-navy" style="font-size:10px">${r.aref}</span></td>
+    <td style="font-size:12px">${r.prov}</td>
+    <td><code style="font-size:11px;background:#f0f2f7;padding:2px 6px;border-radius:4px">${r.gresa}</code></td>
+    <td style="font-size:12px">${r.commune}</td>
+    <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px" title="${r.etbs}">${r.etbs}</td>
+    <td>${typeBadge(r.type)}</td>
+    <td><span class="badge badge-gray" style="font-size:10px">${r.tranche}</span></td>
+    <td style="font-size:11px">${r.partenaire||'—'}</td>
+    <td style="font-size:12px">${r.cycle}</td>
+    <td><span class="badge ${r.statut.toLowerCase().includes('ouverte')?'badge-green':'badge-gray'}" style="font-size:10px">${r.statut}</span></td>
+  </tr>`);
+  renderPagination('dbPageInfo','dbPagNums','dbPrev','dbNext', filteredDb.length, dbCurPage, n => { dbCurPage=n; renderDbTable(); });
+}
+
+// ══════════════════════════════════════
+// PAGINATION
+// ══════════════════════════════════════
+function renderPagination(infoId, numsId, prevId, nextId, total, cur, cb) {
+  const pages = Math.ceil(total / PAGE_SIZE);
+  const start = (cur-1)*PAGE_SIZE+1, end = Math.min(cur*PAGE_SIZE, total);
+  document.getElementById(infoId).textContent = `Affichage de ${total?start:0} à ${end} sur ${total.toLocaleString('fr')} entrées`;
+  document.getElementById(prevId).disabled = cur <= 1;
+  document.getElementById(nextId).disabled = cur >= pages;
+
+  let nums = '';
+  const range = [];
+  for (let i=Math.max(1,cur-2); i<=Math.min(pages,cur+2); i++) range.push(i);
+  range.forEach(i => { nums += `<button class="pag-num${i===cur?' active':''}" onclick="(${cb.toString()})(${i})">${i}</button>`; });
+  document.getElementById(numsId).innerHTML = nums;
+
+  // Store callbacks for prev/next
+  document.getElementById(prevId).onclick = () => cb(cur-1);
+  document.getElementById(nextId).onclick = () => cb(cur+1);
+}
+
+function techPage(d) { techCurPage += d; renderTechTable(); }
+function marchePage(d) { marcheCurPage += d; renderMarcheTable(); }
+function paiPage(d) { paiCurPage += d; renderPaiTable(); }
+function dbPage(d) { dbCurPage += d; renderDbTable(); }
+
+// ══════════════════════════════════════
+// CSV EXPORT
+// ══════════════════════════════════════
+function exportCSV(type) {
+  let headers, rows, filename;
+  if (type==='tech') {
+    headers = ['GRESA','Province','Commune','Etablissement','Type','Tranche','Gros%','Second%','Reception%','Constructibilite'];
+    rows = filteredProjects.map(r => [r.gresa,r.prov,r.commune,r.etbs,r.type,r.tranche,(r.gros*100||0).toFixed(0),(r.second*100||0).toFixed(0),(r.recep*100||0).toFixed(0),r.constructibilite]);
+    filename = 'suivi_technique.csv';
+  } else if (type==='marche'||type==='fin') {
+    headers = ['N_Marche','Province','GRESA','Attributaire','Montant_TTC','Date_OS','Delai','Type','Adjuge'];
+    rows = filteredMarches.map(r => [r.num_marche,r.prov,r.gresa,r.attributaire,r.montant||'',r.date_os,r.delai,r.type,r.adj]);
+    filename = 'suivi_marches.csv';
+  } else if (type==='pai') {
+    headers = ['GRESA','Province','N_Marche','Attributaire','Decompte','Montant','Date','Paye'];
+    rows = filteredPaiements.map(r => [r.gresa,r.prov,r.num_marche,r.attributaire,r.decompte,r.montant,r.date,r.paye]);
+    filename = 'suivi_paiements.csv';
+  } else {
+    headers = ['AREF','Province','GRESA','Commune','Etablissement','Type','Tranche','Partenaire','Cycle','Statut'];
+    rows = filteredDb.map(r => [r.aref,r.prov,r.gresa,r.commune,r.etbs,r.type,r.tranche,r.partenaire,r.cycle,r.statut]);
+    filename = 'base_donnees.csv';
+  }
+  const csv = [headers, ...rows].map(r => r.map(c => '"'+(c||'').toString().replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = filename; a.click();
+}
+
+// ══════════════════════════════════════
+// EXCEL IMPORT (SheetJS)
+// ══════════════════════════════════════
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropZone').classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (file) processExcel(file);
+}
+
+function importExcel(input) {
+  if (input.files[0]) processExcel(input.files[0]);
+}
+
+function processExcel(file) {
+  if (typeof XLSX === 'undefined') {
+    alert('Chargement du module Excel en cours, veuillez réessayer dans quelques secondes.');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(sheet);
+      if (data.length) {
+        alert('✓ Fichier importé : ' + data.length + ' lignes détectées. Rechargez la page pour appliquer les modifications.');
+      }
+    } catch(err) {
+      alert('Erreur lors de la lecture du fichier : ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ══════════════════════════════════════
+// INIT
+// ══════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric' });
+  document.getElementById('topbarDate').textContent = 'MÀJ : ' + dateStr;
+
+  filteredProjects = DB.projects.slice();
+  filteredMarches = DB.marches.slice();
+  filteredPaiements = DB.paiements.slice();
+  filteredDb = DB.projects.slice();
+
+  renderKpis();
+  renderCharts();
+});
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</body>
+</html>
